@@ -1,0 +1,24 @@
+const BASE_URL = 'http://3.149.137.146:3000';
+
+export async function apiFetch(path: string, options: any = {}) {
+  const token =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('token')
+      : null;
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(options.headers || {}),
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || 'Request failed');
+  }
+
+  return res.json();
+}

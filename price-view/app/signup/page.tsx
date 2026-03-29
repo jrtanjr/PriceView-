@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/app/lib/supabase'
+// import { supabase } from '@/app/lib/supabase'
 import { GlassCard } from '@/app/components/ui'
 
 export default function SignupPage() {
@@ -24,16 +24,45 @@ export default function SignupPage() {
     backdropFilter: 'blur(12px)',
   }
 
+  // async function handleSignUp() { //supabase auth
+  //   if (passwordMatch || !email || !password || !name) return
+  //   setLoading(true); setError('')
+  //   const { error } = await supabase.auth.signUp({
+  //     email, password,
+  //     options: { data: { full_name: name } },
+  //   })
+  //   if (error) { setError(error.message); setLoading(false); return }
+  //   router.push('/dashboard')
+  // }
+
   async function handleSignUp() {
-    if (passwordMatch || !email || !password || !name) return
-    setLoading(true); setError('')
-    const { error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { full_name: name } },
-    })
-    if (error) { setError(error.message); setLoading(false); return }
-    router.push('/dashboard')
-  }
+    if (passwordMatch || !email || !password || !name) return;
+
+    setLoading(true);
+    setError('');
+
+      try {
+        const res = await fetch('http://3.149.137.146:3000/signup', { //EC2 IP
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, name }),
+        });
+
+        // if (!res.ok) {
+        //   const text = await res.text();
+        //   throw new Error(text);
+        // }
+
+        const data = await res.json();
+
+        localStorage.setItem('token', data.token);
+        router.push('/dashboard');
+
+      } catch (err) {
+          if (err instanceof Error) setError(err.message);
+          setLoading(false);
+        }
+      }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">

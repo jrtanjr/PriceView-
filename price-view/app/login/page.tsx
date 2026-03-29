@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/app/lib/supabase'
+// import { supabase } from '@/app/lib/supabase'
 import { GlassCard } from '@/app/components/ui'
 
 export default function LoginPage() {
@@ -20,13 +20,69 @@ export default function LoginPage() {
     backdropFilter: 'blur(12px)',
   }
 
-  async function handleLogin() {
-    if (!email || !password) return
-    setLoading(true); setError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) { setError(error.message); setLoading(false); return }
-    router.push('/dashboard')
-  }
+  // async function handleLogin() { //supabase auth
+  //   if (!email || !password) return
+  //   setLoading(true); setError('')
+  //   const { error } = await supabase.auth.signInWithPassword({ email, password })
+  //   if (error) { setError(error.message); setLoading(false); return }
+  //   router.push('/dashboard')
+  // }
+
+  // async function handleLogin() { //migrate from supabase to postgresql auth V1
+  //   if (!email || !password) return;
+
+  //   setLoading(true);
+  //   setError('');
+
+  //     try {
+  //       const res = await fetch('http://3.149.137.146:3000/login', { //EC2 IP
+  //         method: 'POST',
+  //         headers: { 'Content-Type': 'application/json' },
+  //         body: JSON.stringify({ email, password }),
+  //       });
+
+  //       if (!res.ok) {
+  //         const text = await res.text();
+  //         throw new Error(text);
+  //       }
+
+  //       const data = await res.json();
+
+  //       localStorage.setItem('token', data.token);
+  //       router.push('/dashboard');
+
+  //     } catch (err) {
+  //         if (err instanceof Error) {
+  //           setError(err.message);
+  //         } else {
+  //           setError('Something went wrong');
+  //         }
+  //         setLoading(false);
+  //       }
+  //   }
+  async function handleLogin() { //migrate from supabase to postgresql auth V2 
+    if (!email || !password) return;
+
+    setLoading(true);
+    setError('');
+
+      try {
+        const res = await fetch('http://3.149.137.146:3000/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await res.json();
+
+        localStorage.setItem('token', data.token);
+        router.push('/dashboard');
+
+      } catch (err) {
+        if (err instanceof Error) setError(err.message);
+        setLoading(false);
+      }
+    }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">

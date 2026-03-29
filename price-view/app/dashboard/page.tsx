@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { searchSymbol, getQuote, getCompanyNews } from '@/app/lib/finnhub'
-import { supabase } from '@/app/lib/supabase'
+// import { supabase } from '@/app/lib/supabase'
+import { apiFetch } from '@/app/lib/api'
 import { GlassCard, SectionCard, StatCard, ComingSoon, EmptyState, NewsItem, LoadingPulse } from '@/app/components/ui'
 
 type Stock = {
@@ -126,17 +127,33 @@ export default function Page() {
       .map(([name, count]) => ({ name, count, percent: Math.round((count / total) * 100) }))
   })()
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null))
-  }, [])
+  // useEffect(() => { //supabase auth
+  //   supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null))
+  // }, [])
 
   useEffect(() => {
-    if (!userId) return
+    // if (!userId) return
     async function fetchWatchlist() {
       setLoadingStocks(true)
+      console.log("FETCHING WATCHLIST...");
       try {
-        const { data, error } = await supabase.from('watchlist').select('symbol').order('created_at', { ascending: false })
-        if (error) throw error
+        // const { data, error } = await supabase.from('watchlist').select('symbol').order('created_at', { ascending: false }) //supabase query
+        // const token = localStorage.getItem('token');
+
+        // const res = await fetch('http://3.149.137.146:3000/watchlist', {
+        //   headers: {
+        //     Authorization: `Bearer ${token}`,
+        //   },
+        // });
+        
+        // if (!res.ok) {
+        //     throw new Error('Failed to fetch watchlist');
+        //   }
+
+        // const data = await res.json();
+        const data = await apiFetch('/watchlist'); // using api helper with auth header
+        console.log("WATCHLIST DATA:", data);
+
         const stocksWithPrices = await Promise.all(
           (data ?? []).map(async ({ symbol }: { symbol: string }) => {
             try {
@@ -155,14 +172,35 @@ export default function Page() {
       }
     }
     fetchWatchlist()
-  }, [userId])
+  }, []) // remove userId from dependencies since we're now using token-based auth and fetch watchlist on page load
 
+  // async function removeFromWatchlist(symbol: string) { //supabase query
+  //   const { error } = await supabase.from('watchlist').delete().eq('symbol', symbol).eq('user_id', userId)
+  //   if (error) { console.error('Failed to remove:', error); return }
+  //   setStocks(prev => prev.filter(s => s.symbol !== symbol))
+  //   if (selectedSymbol === symbol) setSelectedSymbol(null)
+  // }
   async function removeFromWatchlist(symbol: string) {
-    const { error } = await supabase.from('watchlist').delete().eq('symbol', symbol).eq('user_id', userId)
-    if (error) { console.error('Failed to remove:', error); return }
-    setStocks(prev => prev.filter(s => s.symbol !== symbol))
-    if (selectedSymbol === symbol) setSelectedSymbol(null)
-  }
+    const token = localStorage.getItem('token');
+
+      try {
+        // await fetch('http://3.149.137.146:3000/watchlist', {
+        await apiFetch('/watchlist', { // using api helper with auth header
+          method: 'DELETE',
+          // headers: { // moved to api helper
+          //   'Content-Type': 'application/json',
+          //   Authorization: `Bearer ${token}`,
+          // },
+          body: JSON.stringify({ symbol }),
+        });
+
+        setStocks(prev => prev.filter(s => s.symbol !== symbol));
+        if (selectedSymbol === symbol) setSelectedSymbol(null);
+
+      } catch (err) {
+        console.error('Failed to remove:', err);
+      }
+    }
 
   useEffect(() => {
     if (query.length < 1) { setResults([]); setShowDropdown(false); return }

@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { getQuote, getCompanyNews, searchSymbol } from '@/app/lib/finnhub'
-import { supabase } from '@/app/lib/supabase'
+// import { supabase } from '@/app/lib/supabase'
 import { GlassCard, SectionCard, ComingSoon, NewsItem, LoadingPulse, Button } from '@/app/components/ui'
+import { apiFetch } from '../lib/api'
 
 function TradingViewWidget({ symbol }: { symbol: string }) {
   const container = useRef<HTMLDivElement>(null)
@@ -91,32 +92,123 @@ function DetailsContent() {
     router.push(`/details?symbol=${sym}`)
   }
 
+  // useEffect(() => { //supabase auth listener
+  //   async function init() {
+  //     const { data } = await supabase.auth.getUser()
+  //     const uid = data.user?.id ?? null
+  //     setUserId(uid)
+  //     if (uid) {
+  //       const { data: existing } = await supabase.from('watchlist').select('id')
+  //         .eq('user_id', uid).eq('symbol', symbol).maybeSingle()
+  //       setTracked(!!existing)
+  //     }
+  //   }
+  //   init()
+  // }, [symbol])
   useEffect(() => {
     async function init() {
-      const { data } = await supabase.auth.getUser()
-      const uid = data.user?.id ?? null
-      setUserId(uid)
-      if (uid) {
-        const { data: existing } = await supabase.from('watchlist').select('id')
-          .eq('user_id', uid).eq('symbol', symbol).maybeSingle()
-        setTracked(!!existing)
-      }
-    }
-    init()
-  }, [symbol])
+      //   const token = localStorage.getItem('token'); // moved to api helper
 
-  async function handleTrack() {
-    if (!userId) return
-    setTrackLoading(true)
-    if (tracked) {
-      await supabase.from('watchlist').delete().eq('user_id', userId).eq('symbol', symbol)
-      setTracked(false)
-    } else {
-      await supabase.from('watchlist').insert({ user_id: userId, symbol })
-      setTracked(true)
+      //     if (!token) return;
+
+      //     const res = await fetch(
+      //       `http://3.149.137.146:3000/watchlist/check?symbol=${symbol}`,
+      //       {
+      //         headers: {
+      //           Authorization: `Bearer ${token}`,
+      //         },
+      //       }
+      //     );
+
+      //     const data = await res.json();
+      //     setTracked(data.exists);
+      //   }
+
+      //   init();
+      // }, [symbol]);
+        try {
+          const data = await apiFetch(`/watchlist/check?symbol=${symbol}`); // using api helper with auth header
+          setTracked(data.exists);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      init();
+    }, [symbol]); 
+
+  // async function handleTrack() { //supabase watchlist toggle
+  //   if (!userId) return
+  //   setTrackLoading(true)
+  //   if (tracked) {
+  //     await supabase.from('watchlist').delete().eq('user_id', userId).eq('symbol', symbol)
+  //     setTracked(false)
+  //   } else {
+  //     await supabase.from('watchlist').insert({ user_id: userId, symbol })
+  //     setTracked(true)
+  //   }
+  //   setTrackLoading(false)
+  // }
+  async function handleTrack() { //migrate from supabase to postgresql watchlist toggle
+    // const token = localStorage.getItem('token'); // moved to api helper, but we still want to check if token exists before allowing tracking actions
+    // if (!token) return;
+
+    setTrackLoading(true);
+
+    //   try { // change to api helper with auth header
+    //     if (tracked) {
+    //       await fetch('http://3.149.137.146:3000/watchlist', {
+    //         method: 'DELETE',
+    //         headers: {
+    //           'Content-Type': 'application/json',
+    //           Authorization: `Bearer ${token}`,
+    //         },
+    //         body: JSON.stringify({ symbol }),
+    //       });
+
+    //       setTracked(false);
+
+    //     } else {
+    //       await fetch('http://3.149.137.146:3000/watchlist', {
+    //         method: 'POST',
+    //         headers: {
+    //           'Content-Type': 'application/json',
+    //           Authorization: `Bearer ${token}`,
+    //         },
+    //         body: JSON.stringify({ symbol }),
+    //       });
+
+    //       setTracked(true);
+    //     }
+
+    //   } catch (err) {
+    //     console.error(err);
+    //   }
+
+    //   setTrackLoading(false);
+    // }
+      try {
+        if (tracked) {
+          await apiFetch('/watchlist', {
+            method: 'DELETE',
+            body: JSON.stringify({ symbol }),
+          });
+          setTracked(false);
+
+        } else {
+          await apiFetch('/watchlist', {
+            method: 'POST',
+            body: JSON.stringify({ symbol }),
+          });
+          setTracked(true);
+        }
+
+      } catch (err) {
+        console.error(err);
+      }
+
+      setTrackLoading(false);
     }
-    setTrackLoading(false)
-  }
 
   useEffect(() => {
     setLoading(true)

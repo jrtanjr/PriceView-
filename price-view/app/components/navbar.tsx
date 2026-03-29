@@ -1,27 +1,38 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/app/lib/supabase'
+import { useRouter, usePathname } from 'next/navigation'
+// import { supabase } from '@/app/lib/supabase'
 
 export default function Navbar() {
   const router = useRouter()
+  const pathname = usePathname()
   const [loggedIn, setLoggedIn] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setLoggedIn(!!data.session)
-    })
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setLoggedIn(!!session)
-    })
-    return () => listener.subscription.unsubscribe()
-  }, [])
+  // useEffect(() => { //supabase auth listener
+  //   supabase.auth.getSession().then(({ data }) => {
+  //     setLoggedIn(!!data.session)
+  //   })
+  //   const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+  //     setLoggedIn(!!session)
+  //   })
+  //   return () => listener.subscription.unsubscribe()
+  // }, [])
 
-  async function handleLogout() {
-    await supabase.auth.signOut()
-    router.push('/login')
+  // async function handleLogout() {
+  //   await supabase.auth.signOut()
+  //   router.push('/login')
+  // }
+
+  useEffect(() => {  //migrate from supabase to postgresql auth
+    const token = localStorage.getItem('token');
+    setLoggedIn(!!token);
+  }, [pathname]); // re-check auth status on pathname change to update nav links
+
+  function handleLogout() {
+    localStorage.removeItem('token');
+    router.push('/login');
   }
 
   return (
