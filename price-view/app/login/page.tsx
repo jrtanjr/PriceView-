@@ -60,26 +60,74 @@ export default function LoginPage() {
   //         setLoading(false);
   //       }
   //   }
-  async function handleLogin() { //migrate from supabase to postgresql auth V2 
+  // async function handleLogin() { //migrate from supabase to postgresql auth V2 
+  //   if (!email || !password) return;
+
+  //   setLoading(true);
+  //   setError('');
+
+  //     try {
+  //       const res = await fetch('http://3.149.137.146:3000/login', {
+  //         method: 'POST',
+  //         headers: { 'Content-Type': 'application/json' },
+  //         body: JSON.stringify({ email, password }),
+  //       });
+
+  //       const data = await res.json();
+
+  //       // localStorage.setItem('token', data.token); 
+  //       // router.push('/dashboard');
+  //       localStorage.setItem('token', data.token);
+
+  //       // (added for proxy)
+  //       document.cookie = `token=${data.token}; path=/`;
+
+  //       //debug
+  //       console.log("Token stored:", data.token);
+
+  //       router.push('/dashboard');
+
+  //     } catch (err) {
+  //       if (err instanceof Error) setError(err.message);
+  //       setLoading(false);
+  //     }
+  //   }
+  async function handleLogin() { //migrate from supabase to postgresql auth V3 (with improved error handling)
     if (!email || !password) return;
 
     setLoading(true);
     setError('');
 
       try {
-        const res = await fetch('http://3.149.137.146:3000/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/login`, //use env variable for API URL to enhance flexibility and security
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+          }
+        );
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || 'Login failed');
+        }
 
         const data = await res.json();
 
+        // Store token (API usage)
         localStorage.setItem('token', data.token);
+
+        // Store cookie (for proxy protection)
+        document.cookie = `token=${data.token}; path=/`;
+
+        console.log("Login token:", data.token);
+
         router.push('/dashboard');
 
       } catch (err) {
         if (err instanceof Error) setError(err.message);
+      } finally {
         setLoading(false);
       }
     }
